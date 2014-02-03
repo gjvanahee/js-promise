@@ -1,0 +1,19 @@
+{
+	"name":"promises",
+	"version":"0.1.1",
+	"description":"Promise polyfill for browsers that not yet support them (as per the specs of https://github.com/domenic/promises-unwrapping)",
+	"main":"index.js",
+	"directories": {
+		"test":"test",
+		"src":"src",
+		"production":"lib"
+	},
+	"keywords": ["Promises", "A+"],
+	"author":"Gerrit Jan van Ahee",
+	"license":"MIT", 
+	"devDependencies":{
+		"grunt":"~0.4.2",
+		"grunt-contrib-jshint":"~0.8.0",
+		"grunt-contrib-uglify":"~0.3.1",
+	}
+}
