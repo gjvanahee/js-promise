@@ -1,21 +1,13 @@
-(function () {// clear && node test/promise_test.js
+(function () {// clear && node test/test.js
 	"use strict";
-	// var Promise				= require("../js/promise/").Promise,
-	var Promise				= require("../lib/promises-latest.min").Promise,
+	var Promise				= require("../src/promise").Promise,
+	// var Promise				= require("../lib/promises-latest.min").Promise,
 		promisesAplusTests  = require("promises-aplus-tests"),
 		stub    = function (status) {
 			return function (value) {
-				try {
-					var promise = new Promise(function (f, r) {
-						(status === Promise.State.FULFILLED ? f : r)(value);
-					});
-					return promise;
-				}
-				catch (e) {
-					console.log("ohoh while moving to state: " + status, e);
-					console.log(e.trace);
-					throw e;
-				}
+				return new Promise(function (f, r) {
+					(status === Promise.State.FULFILLED ? f : r)(value);
+				});
 			};
 		},
 		adapter = {

@@ -1,6 +1,3 @@
-// http://domenic.me/2012/10/14/youre-missing-the-point-of-promises/
-// https://github.com/domenic/promises-unwrapping/
-// http://promises-aplus.github.io/promises-spec/
 var Promise = (function () {
 	"use strict";
 	var is_type					= function (item, type) {
@@ -8,36 +5,40 @@ var Promise = (function () {
 		},
 		move_to_end_of_stack    = function (promise, link) {
 			return function () {
-				try {
-					// 2.2.7.1 If either onFulfilled or onRejected returns a value x, run the Promise Resolution Procedure [[Resolve]](promise2, x).
-					if (
-						promise.state === Promise.State.FULFILLED &&
-						is_type(link.fulfilled, "Function")
-					) {
-						promise_resolution(
-							link.promise,
-							link.fulfilled.call(undefined, promise.value_or_reason)
-						);
+				var link    = promise.chain.shift();
+				while (link) {
+					try {
+						// 2.2.7.1 If either onFulfilled or onRejected returns a value x, run the Promise Resolution Procedure [[Resolve]](promise2, x).
+						if (
+							promise.state === Promise.State.FULFILLED &&
+							is_type(link.fulfilled, "Function")
+						) {
+							promise_resolution(
+								link.promise,
+								link.fulfilled.call(undefined, promise.value_or_reason)
+							);
+						}
+						else if (
+							promise.state === Promise.State.REJECTED &&
+							is_type(link.rejected, "Function")
+						) {
+							promise_resolution(
+								link.promise,
+								link.rejected.call(undefined, promise.value_or_reason)
+							);
+						}
+						// 2.2.7.3 If onFulfilled is not a function and promise1 is fulfilled, promise2 must be fulfilled with the same value.
+						// 2.2.7.4 If onRejected is not a function and promise1 is rejected, promise2 must be rejected with the same reason.
+						else {
+							transition(link.promise, promise.state, promise.value_or_reason);
+						} // no callback given
 					}
-					else if (
-						promise.state === Promise.State.REJECTED &&
-						is_type(link.rejected, "Function")
-					) {
-						promise_resolution(
-							link.promise,
-							link.rejected.call(undefined, promise.value_or_reason)
-						);
+					//  2.2.7.2 If either onFulfilled or onRejected throws an exception e, promise2 must be rejected with e as the reason.
+					catch (e) {
+						transition(link.promise, Promise.State.REJECTED, e);
 					}
-					// 2.2.7.3 If onFulfilled is not a function and promise1 is fulfilled, promise2 must be fulfilled with the same value.
-					// 2.2.7.4 If onRejected is not a function and promise1 is rejected, promise2 must be rejected with the same reason.
-					else {
-						transition(link.promise, promise.state, promise.value_or_reason);
-					} // no callback given
-				}
-				//  2.2.7.2 If either onFulfilled or onRejected throws an exception e, promise2 must be rejected with e as the reason.
-				catch (e) {
-					generate_reject(link.promise)(e);
-				}
+					link    = promise.chain.shift();
+				} // no link to fulfill/reject
 			};
 		},
 		generate_resolve	= function (promise) { return function (resolution) { transition(promise, Promise.State.FULFILLED, resolution); }; },
@@ -131,11 +132,7 @@ var Promise = (function () {
 		},
 		resolve   = function (promise) {
 			if (promise.state !== Promise.State.PENDING) {
-				var link    = promise.chain.shift();
-				while (link) {
-					setTimeout(move_to_end_of_stack(promise, link), 0);
-					link    = promise.chain.shift();
-				} // no link to fulfill/reject
+				setTimeout(move_to_end_of_stack(promise), 0);
 			} // still PENDING
 		},
 		/**

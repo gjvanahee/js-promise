@@ -8,7 +8,13 @@
 		"src":"src",
 		"production":"lib"
 	},
-	"keywords": ["Promises", "A+"],
+	"implements": [
+		"Promises/A+ 1.1"
+	],
+	"scripts": {
+		"test": "clear && node test/test.js"
+	},
+	"keywords": ["Promises", "A+", "Promises/A+"],
 	"author":"Gerrit Jan van Ahee",
 	"license":"MIT", 
 	"devDependencies":{
