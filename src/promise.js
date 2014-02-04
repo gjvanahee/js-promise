@@ -199,6 +199,6 @@ var Promise = (function () {
 	// return the class
 	return Promise;
 } ());
-if (typeof exports !== "undefined") {
-	exports.Promise    = Promise;
+if (typeof module !== "undefined") {
+	module.exports.Promise    = Promise;
 }
