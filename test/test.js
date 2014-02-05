@@ -3,13 +3,6 @@
 	var Promise				= require("../src/promise").Promise,
 	// var Promise				= require("../lib/promises-latest.min").Promise,
 		promisesAplusTests  = require("promises-aplus-tests"),
-		stub    = function (status) {
-			return function (value) {
-				return new Promise(function (f, r) {
-					(status === Promise.State.FULFILLED ? f : r)(value);
-				});
-			};
-		},
 		adapter = {
 			deferred: function () {
 				var fulfil, reject, promise = new Promise(function (f, r) { 
@@ -22,8 +15,8 @@
 					reject:     function (r) { reject(r); }
 				};
 			},
-			resolved:   stub(Promise.State.FULFILLED),
-			rejected:   stub(Promise.State.REJECTED)
+			resolved:   function (value) { return new Promise(function (f   ) { f(value); }); },
+			rejected:   function (value) { return new Promise(function (f, r) { r(value); }); }
 		};
 
 	promisesAplusTests(

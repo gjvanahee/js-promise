@@ -10,20 +10,20 @@ module.exports = function (grunt) {
 				banner: '/*! <%= pkg.name %> v<%= pkg.version %> <%= grunt.template.today("yyyy-mm-dd HH:MM:ss") %> Licence <%= pkg.license %> */\n'
 			},
 			latest: {
-				src: '<%= concat.production.dest %>',
-				dest: 'production/<%= pkg.name %>-latest.min.js'
+				src: '<%= jshint.files[2] %>',
+				dest: 'lib/<%= pkg.name %>-latest.min.js'
 			},
 			production: {
-				src: '<%= concat.production.dest %>',
-				dest: 'production/<%= pkg.name %>-<%= pkg.version %>.min.js'
+				src: '<%= jshint.files[2] %>',
+				dest: 'lib/<%= pkg.name %>-<%= pkg.version %>.min.js'
 			}
 		},
 		jshint: {
 			// define the files to lint
 			files: [
 				'Gruntfile.js', 
-				'test/promise_test.js', 
-				'<%= concat.production.src %>'
+				'test/test.js', 
+				'src/promise.js'
 			],
 			// configure JSHint (documented at http://www.jshint.com/docs/)
 			options: {
@@ -47,5 +47,6 @@ module.exports = function (grunt) {
 	grunt.loadNpmTasks('grunt-contrib-uglify');
 	grunt.loadNpmTasks('grunt-contrib-jshint');
 	// Default task(s).
+	grunt.registerTask('latest', ['jshint', 'uglify:latest']);
 	grunt.registerTask('default', ['jshint', 'uglify']);
 };

@@ -6,7 +6,7 @@
 	"directories": {
 		"test":"test",
 		"src":"src",
-		"production":"lib"
+		"lib":"lib"
 	},
 	"implements": [
 		"Promises/A+ 1.1"

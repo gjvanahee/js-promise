@@ -3,14 +3,14 @@ var Promise = (function () {
 	var is_type					= function (item, type) {
 			return !!Object.prototype.toString.call(item).match(new RegExp(type));
 		},
-		move_to_end_of_stack    = function (promise, link) {
+		move_to_end_of_stack    = function (promise) {
 			return function () {
 				var link    = promise.chain.shift();
 				while (link) {
 					try {
 						// 2.2.7.1 If either onFulfilled or onRejected returns a value x, run the Promise Resolution Procedure [[Resolve]](promise2, x).
 						if (
-							promise.state === Promise.State.FULFILLED &&
+							promise.state === State.FULFILLED &&
 							is_type(link.fulfilled, "Function")
 						) {
 							promise_resolution(
@@ -19,7 +19,7 @@ var Promise = (function () {
 							);
 						}
 						else if (
-							promise.state === Promise.State.REJECTED &&
+							promise.state === State.REJECTED &&
 							is_type(link.rejected, "Function")
 						) {
 							promise_resolution(
@@ -35,20 +35,20 @@ var Promise = (function () {
 					}
 					//  2.2.7.2 If either onFulfilled or onRejected throws an exception e, promise2 must be rejected with e as the reason.
 					catch (e) {
-						transition(link.promise, Promise.State.REJECTED, e);
+						transition(link.promise, State.REJECTED, e);
 					}
 					link    = promise.chain.shift();
 				} // no link to fulfill/reject
 			};
 		},
-		generate_resolve	= function (promise) { return function (resolution) { transition(promise, Promise.State.FULFILLED, resolution); }; },
-		generate_reject		= function (promise) { return function (reason) { transition(promise, Promise.State.REJECTED, reason); }; },
+		generate_resolve	= function (promise) { return function (resolution) { transition(promise, State.FULFILLED, resolution); }; },
+		generate_reject		= function (promise) { return function (reason) { transition(promise, State.REJECTED, reason); }; },
 		transition			= function (promise, state, value_or_reason) {
-			if (state === Promise.State.PENDING) {
+			if (state === State.PENDING) {
 				return;
 	//            throw new Error("Cannot transition into PENDING state");
 			}
-			if (promise.state !== Promise.State.PENDING) {
+			if (promise.state !== State.PENDING) {
 				return;
 	//            throw new Error("Cannot transition out of final state");
 			}
@@ -64,11 +64,12 @@ var Promise = (function () {
 		promise_resolution    = function (promise2, x) {
 			// 2.3.1 promise and x refer to the same object, reject promise with a TypeError as the reason.
 			if (promise2 === x) {
-				transition(promise2, Promise.State.REJECTED, new TypeError("Function return value is same as promise linked.")); 
+				transition(promise2, State.REJECTED, new TypeError("Function return value is same as promise linked.")); 
 			}
 
 			// 2.3.2 If x is a promise, adopt its state 3.4:
 			if (
+				// x instanceof Promise
 				is_type(x, "Object") &&
 				is_type(x.chain, "Object") &&
 				is_type(x.then, "Function")
@@ -108,32 +109,49 @@ var Promise = (function () {
 							function (r) {
 								if (callable) {
 									callable    = false;
-									transition(promise2, Promise.State.REJECTED, r);
+									transition(promise2, State.REJECTED, r);
 								}
 							}
 						);
 					}
 					// 2.3.3.4 If then is not a function, fulfill promise with x.
 					else {
-						transition(promise2, Promise.State.FULFILLED, x);
+						transition(promise2, State.FULFILLED, x);
 					}
 				}
 				// 2.3.3.2 If retrieving the property x.then results in a thrown exception e, reject promise with e as the reason.
 				catch (e) {
 					if (callable) {
-						transition(promise2, Promise.State.REJECTED, e);
+						transition(promise2, State.REJECTED, e);
 					}
 				}
 			}
 			// 2.3.4 If x is not an object or function, fulfill promise with x.
 			else {
-				transition(promise2, Promise.State.FULFILLED, x);
+				transition(promise2, State.FULFILLED, x);
 			}
 		},
 		resolve   = function (promise) {
-			if (promise.state !== Promise.State.PENDING) {
-				setTimeout(move_to_end_of_stack(promise), 0);
+			if (promise.state !== State.PENDING) {
+				// setTimeout(move_to_end_of_stack(promise), 0);
+				postpone(move_to_end_of_stack(promise), 0);
 			} // still PENDING
+		},
+		postpone	= process&&process.nextTick ? process.nextTick : setTimeout,
+		/**
+		 * When pending, a promise:
+		 *  may transition to either the fulfilled or rejected state.
+		 * When fulfilled, a promise:
+		 *  must not transition to any other state.
+		 *  must have a value, which must not change.
+		 * When rejected, a promise:
+		 *  must not transition to any other state.
+		 *  must have a reason, which must not change.
+		 */
+		State   = {
+			PENDING:     0,
+			FULFILLED:   1,
+			REJECTED:   -1
 		},
 		/**
 		 * “promise” is an object or function with a then method whose behavior conforms to this specification.
@@ -144,7 +162,7 @@ var Promise = (function () {
 		 */
 		Promise = function (resolver) {
 			this.chain              = [];
-			this.state              = Promise.State.PENDING;
+			this.state              = State.PENDING;
 			this.value_or_reason    = undefined;
 
 			try {
@@ -155,25 +173,9 @@ var Promise = (function () {
 				);
 			}
 			catch (e) {
-				transition(this, Promise.State.REJECTED, e);
+				transition(this, State.REJECTED, e);
 			}
 		};
-
-	/**
-	 * When pending, a promise:
-	 *  may transition to either the fulfilled or rejected state.
-	 * When fulfilled, a promise:
-	 *  must not transition to any other state.
-	 *  must have a value, which must not change.
-	 * When rejected, a promise:
-	 *  must not transition to any other state.
-	 *  must have a reason, which must not change.
-	 */
-	Promise.State   = {
-		PENDING:     0,
-		FULFILLED:   1,
-		REJECTED:   -1
-	};
 	/**
 	 * Registers callbacks to receive either a promise’s eventual value or the reason why the promise cannot be fulfilled.
 	 * @param {function} fulfilled the succes, taking the eventual value
@@ -187,8 +189,6 @@ var Promise = (function () {
 			rejected:   rejected
 		};
 		this.chain.push(link);
-		// if (this.state !== Promise.State.PENDING)	transition(link.promise, this.state, this.value_or_reason);
-		// console.log('then', this.state, link.promise.state);
 		resolve(this);
 		return link.promise;
 	};
